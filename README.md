@@ -36,8 +36,8 @@ open index.html        # macOS
 
 ## 在线访问
 
-启用 GitHub Pages 后可通过以下地址访问（替换为实际用户名与仓库名）：
+已通过 GitHub Pages 部署，可直接访问：
 
-```
-https://<用户名>.github.io/json-viewer/
-```
+🔗 **https://blog.wangruofeng007.com/json-viewer/**
+
+源码仓库：https://github.com/wangruofeng/json-viewer
