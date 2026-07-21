@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JSON 格式化与查看工具</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --border: #e5e7eb;
+    --border-strong: #d1d5db;
+    --text: #1f2328;
+    --text-muted: #6b7280;
+    --text-faint: #9ca3af;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-soft: #eff6ff;
+    --danger: #dc2626;
+    --danger-soft: #fef2f2;
+    --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --radius: 10px;
+    --indent: 20px;
+
+    /* JSON 语法配色 */
+    --c-key: #0a7a4f;
+    --c-string: #0a7a4f;
+    --c-number: #1d6feb;
+    --c-boolean: #b5530a;
+    --c-null: #9ca3af;
+    --c-punct: #9ca3af;
+    --c-index: #7c3aed;
+    --guide: #eceef1;
+  }
+  html.dark {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --border-strong: #484f58;
+    --text: #e6edf3;
+    --text-muted: #9198a1;
+    --text-faint: #6e7681;
+    --accent: #58a6ff;
+    --accent-hover: #79b8ff;
+    --accent-soft: #1a2332;
+    --danger: #f87171;
+    --danger-soft: #2a1a1c;
+    --shadow: 0 1px 3px rgba(0,0,0,.4);
+
+    --c-key: #7ee787;
+    --c-string: #7ee787;
+    --c-number: #79c0ff;
+    --c-boolean: #ffa657;
+    --c-null: #8b949e;
+    --c-punct: #8b949e;
+    --c-index: #d2a8ff;
+    --guide: #21262d;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px; background: var(--panel);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 650; }
+  .logo .mark {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: #fff; font-size: 14px; font-weight: 700; letter-spacing: -.5px;
+  }
+  .logo .sub { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+  .spacer { flex: 1; }
+
+  .icon-btn {
+    width: 36px; height: 36px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--panel);
+    color: var(--text-muted); cursor: pointer;
+    display: grid; place-items: center; transition: all .15s;
+  }
+  .icon-btn:hover { color: var(--text); border-color: var(--border-strong); background: var(--bg); }
+  .icon-btn svg { width: 18px; height: 18px; }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    padding: 10px 20px; background: var(--panel);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 34px; padding: 0 12px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--panel); color: var(--text);
+    font-size: 13px; cursor: pointer; transition: all .15s; white-space: nowrap;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--border-strong); background: var(--bg); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn svg { width: 15px; height: 15px; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn.ghost { border-color: transparent; color: var(--text-muted); }
+  .btn.ghost:hover { background: var(--bg); color: var(--text); }
+  .divider { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
+  .seg {
+    display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  }
+  .seg button {
+    height: 34px; padding: 0 11px; border: 0; background: var(--panel);
+    color: var(--text-muted); font-size: 12.5px; cursor: pointer;
+    border-right: 1px solid var(--border); transition: all .15s;
+  }
+  .seg button:last-child { border-right: 0; }
+  .seg button:hover { background: var(--bg); color: var(--text); }
+  .seg button.active { background: var(--accent-soft); color: var(--accent); }
+
+  .stat { font-size: 12px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 6px; }
+  .stat b { color: var(--text); font-weight: 600; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-boolean); }
+  .dot.ok { background: var(--c-key); }
+
+  /* ---------- Main ---------- */
+  main { flex: 1; overflow: auto; padding: 18px 20px 60px; }
+
+  /* Empty / drop state */
+  .dropzone {
+    max-width: 640px; margin: 8vh auto 0;
+    border: 2px dashed var(--border-strong); border-radius: 16px;
+    padding: 48px 32px; text-align: center; background: var(--panel);
+    transition: all .2s;
+  }
+  .dropzone.dragover { border-color: var(--accent); background: var(--accent-soft); transform: scale(1.01); }
+  .dropzone .big-icon {
+    width: 64px; height: 64px; margin: 0 auto 18px; border-radius: 16px;
+    display: grid; place-items: center; background: var(--accent-soft); color: var(--accent);
+  }
+  .dropzone .big-icon svg { width: 30px; height: 30px; }
+  .dropzone h2 { margin: 0 0 8px; font-size: 19px; font-weight: 600; }
+  .dropzone p { margin: 0 0 22px; color: var(--text-muted); font-size: 13.5px; line-height: 1.7; }
+  .dropzone .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .dropzone .hint { margin-top: 18px; font-size: 12px; color: var(--text-faint); }
+
+  /* Tree panel */
+  .tree-panel {
+    max-width: 1200px; margin: 0 auto; background: var(--panel);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .tree-head {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    background: var(--bg); font-size: 12px; color: var(--text-muted);
+  }
+  .tree-head .filename { font-weight: 600; color: var(--text); }
+  .tree-body {
+    padding: 14px 16px;
+    font-family: "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
+    font-size: 13px; line-height: 1.85; overflow-x: auto;
+  }
+
+  /* ---------- Tree nodes ---------- */
+  .node { position: relative; }
+  .row {
+    display: flex; align-items: baseline; padding: 0 6px;
+    border-radius: 5px; position: relative;
+  }
+  .row:hover { background: var(--bg); }
+  .row.has-toggle { cursor: pointer; }
+
+  .children { padding-left: var(--indent); border-left: 1px solid var(--guide); margin-left: 6px; }
+  /* 折叠状态：隐藏子节点 */
+  .node:not(.open) > .children { display: none; }
+  /* 展开状态：旋转箭头、隐藏行内预览与行内闭合括号 */
+  .node.open > .row > .toggle { transform: rotate(90deg); }
+  .node.open > .row > .preview { display: none; }
+  .node.open > .row > .close-inline { display: none; }
+  .node:not(.open) > .row > .close-inline { display: inline; }
+
+  .close-row { margin-left: calc(-1 * var(--indent) - 6px); }
+
+  .toggle {
+    display: inline-grid; place-items: center;
+    width: 14px; height: 14px; flex-shrink: 0; margin-right: 4px;
+    color: var(--text-faint); transition: transform .12s; user-select: none;
+  }
+  .toggle svg { width: 10px; height: 10px; }
+  .toggle.empty { visibility: hidden; }
+
+  .key { color: var(--c-key); cursor: pointer; }
+  .index { color: var(--c-index); cursor: pointer; }
+  .colon { color: var(--c-punct); margin: 0 6px 0 1px; }
+  .val { color: var(--text); cursor: pointer; }
+  .val.string { color: var(--c-string); }
+  .val.number { color: var(--c-number); }
+  .val.boolean { color: var(--c-boolean); }
+  .val.null { color: var(--c-null); font-style: italic; }
+  .punct { color: var(--c-punct); }
+  .preview { color: var(--text-faint); font-style: italic; margin: 0 2px; }
+  .badge {
+    color: var(--text-faint); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 0 7px; font-size: 11px; line-height: 17px; margin-left: 6px;
+  }
+
+  .copy-btn {
+    margin-left: auto; opacity: 0;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 7px; border-radius: 5px;
+    border: 1px solid var(--border); background: var(--panel);
+    color: var(--text-muted); font-size: 11px; cursor: pointer;
+    flex-shrink: 0; transition: opacity .12s, background .12s, color .12s;
+    font-family: -apple-system, sans-serif;
+  }
+  .row:hover .copy-btn { opacity: 1; }
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .copy-btn svg { width: 11px; height: 11px; }
+  .copy-btn.copied { color: var(--c-key); border-color: var(--c-key); opacity: 1; }
+
+  /* ---------- Error ---------- */
+  .error-box {
+    max-width: 760px; margin: 8vh auto 0;
+    background: var(--danger-soft); border: 1px solid var(--danger);
+    border-radius: var(--radius); padding: 20px 22px;
+  }
+  .error-box h3 { margin: 0 0 8px; color: var(--danger); font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .error-box .msg { font-family: monospace; font-size: 13px; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+  .error-box textarea {
+    width: 100%; min-height: 200px; margin-top: 14px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--panel); color: var(--text);
+    padding: 12px; font-family: monospace; font-size: 13px; resize: vertical;
+  }
+  .error-box textarea:focus { outline: none; border-color: var(--accent); }
+
+  /* ---------- Modal (paste) ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    display: none; align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    width: 100%; max-width: 680px; max-height: 80vh;
+    background: var(--panel); border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.25);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .modal-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; }
+  .modal-head h3 { margin: 0; font-size: 15px; flex: 1; }
+  .modal-body { padding: 16px 20px; overflow: auto; }
+  .modal-body textarea {
+    width: 100%; min-height: 280px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg); color: var(--text);
+    padding: 12px; font-family: monospace; font-size: 13px; line-height: 1.7; resize: vertical;
+  }
+  .modal-body textarea:focus { outline: none; border-color: var(--accent); }
+  .modal-foot { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+
+  /* ---------- Toast ---------- */
+  #toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: var(--panel);
+    padding: 9px 16px; border-radius: 8px; font-size: 13px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2);
+    opacity: 0; pointer-events: none; transition: all .22s;
+    z-index: 200; display: flex; align-items: center; gap: 7px;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast svg { width: 15px; height: 15px; }
+
+  .hidden { display: none !important; }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 6px; border: 2px solid var(--bg); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+  @media (max-width: 640px) {
+    header { padding: 12px 14px; }
+    .toolbar { padding: 8px 12px; gap: 6px; }
+    main { padding: 12px 12px 50px; }
+    .logo .sub { display: none; }
+    .btn { height: 32px; padding: 0 10px; font-size: 12.5px; }
+    :root { --indent: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="mark">{ }</div>
+    <div>
+      JSON 格式化与查看工具
+      <div class="sub">导入 · 结构化 · 折叠展开 · 一键复制</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="icon-btn" id="themeBtn" title="切换深浅色"></button>
+</header>
+
+<div class="toolbar">
+  <button class="btn primary" id="importBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    导入文件
+  </button>
+  <button class="btn" id="pasteBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+    粘贴文本
+  </button>
+  <button class="btn ghost" id="sampleBtn">加载示例</button>
+
+  <div class="divider"></div>
+
+  <div class="seg" id="levelSeg">
+    <button data-level="all">全部展开</button>
+    <button data-level="0">仅根</button>
+    <button data-level="1">1 层</button>
+    <button data-level="2">2 层</button>
+    <button data-level="3">3 层</button>
+    <button data-level="none">全部折叠</button>
+  </div>
+
+  <div class="divider"></div>
+
+  <button class="btn" id="copyAllBtn" disabled>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    复制全部 JSON
+  </button>
+
+  <div class="spacer"></div>
+  <div class="stat hidden" id="statBar">
+    <span class="dot ok"></span>
+    <span>有效</span>
+    <span>·</span>
+    <span id="statSize">0 B</span>
+    <span>·</span>
+    <span id="statNodes">0 节点</span>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".json,application/json,.txt,text/plain" class="hidden">
+
+<main id="main">
+  <div class="dropzone" id="dropzone">
+    <div class="big-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+    </div>
+    <h2>拖拽 JSON 文件到此处</h2>
+    <p>支持 <code>.json</code> 文件导入，或直接粘贴 JSON 文本。<br>结构化后将显示为可按层级展开/折叠的树形视图，每个字段均可一键复制。</p>
+    <div class="actions">
+      <button class="btn primary" onclick="document.getElementById('importBtn').click()">选择文件</button>
+      <button class="btn" onclick="document.getElementById('pasteBtn').click()">粘贴 JSON</button>
+      <button class="btn ghost" onclick="document.getElementById('sampleBtn').click()">加载示例</button>
+    </div>
+    <div class="hint">提示：所有键、值、以及字段访问路径都支持复制；长文本会自动截断预览。</div>
+  </div>
+</main>
+
+<!-- Paste modal -->
+<div class="modal-backdrop" id="pasteModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>粘贴 JSON 文本</h3>
+      <button class="icon-btn" id="pasteCloseBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <textarea id="pasteArea" placeholder='{"example": "在此粘贴你的 JSON 文本"}' spellcheck="false"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="pasteCancelBtn">取消</button>
+      <button class="btn primary" id="pasteLoadBtn">解析并结构化</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   JSON 格式化与查看工具
+   - 导入文件 / 粘贴文本
+   - 结构化（解析 + 校验 + 错误定位）
+   - 树形视图，按层级展开/折叠
+   - 所有文本字段支持复制（键 / 值 / 路径 / 整个对象 / 全部）
+   ========================================================= */
+
+const $ = (s) => document.querySelector(s);
+const state = { data: null, fileName: null, rawText: '', nodeCount: 0, depth: 0 };
+
+/* ---------- 通用工具 ---------- */
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(2) + ' MB';
+}
+function byteLength(str) { try { return new Blob([str]).size; } catch { return str.length; } }
+function getType(v) {
+  if (v === null) return 'null';
+  if (Array.isArray(v)) return 'array';
+  return typeof v;
+}
+function truncateStr(s, n) { return s.length <= n ? s : s.slice(0, n) + '…'; }
+
+let toastTimer;
+function showToast(msg, ok = true) {
+  const t = $('#toast');
+  t.innerHTML = (ok
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+  ) + '<span>' + escapeHtml(msg) + '</span>';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch {}
+  // 回退方案
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch {}
+  document.body.removeChild(ta);
+  return ok;
+}
+async function copyAndToast(text, msg) {
+  if (await copyText(text)) showToast(msg);
+  else showToast('复制失败', false);
+}
+
+/* 路径数组 -> 可读路径字符串：foo.bar[0].name */
+function pathToStr(path) {
+  if (!path.length) return '(root)';
+  return path.map((p, i) => {
+    if (typeof p === 'number') return '[' + p + ']';
+    return i === 0 ? p : '.' + p;
+  }).join('');
+}
+
+const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+
+/* ---------- 复制按钮 ---------- */
+function buildCopyBtn(label, getter) {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.innerHTML = COPY_ICON + '<span>' + label + '</span>';
+  btn.title = '复制' + label;
+  btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const text = getter();
+    if (await copyText(text)) {
+      btn.classList.add('copied');
+      const span = btn.querySelector('span');
+      const old = span.textContent;
+      span.textContent = '已复制';
+      showToast('已复制：' + label);
+      setTimeout(() => { btn.classList.remove('copied'); span.textContent = old; }, 1200);
+    } else {
+      showToast('复制失败', false);
+    }
+  });
+  return btn;
+}
+
+/* ---------- 树形渲染 ---------- */
+function renderNode(value, key, path, isItem, isLast) {
+  const node = document.createElement('div');
+  node.className = 'node';
+
+  const row = document.createElement('div');
+  row.className = 'row';
+  node.appendChild(row);
+
+  const type = getType(value);
+  const isContainer = type === 'object' || type === 'array';
+  const isEmpty = isContainer && (type === 'array' ? value.length === 0 : Object.keys(value).length === 0);
+
+  const toggle = document.createElement('span');
+  toggle.className = 'toggle' + (isEmpty || !isContainer ? ' empty' : '');
+  toggle.innerHTML = CHEVRON;
+  row.appendChild(toggle);
+
+  // 键名 / 数组索引
+  if (key !== undefined) {
+    const keyEl = document.createElement('span');
+    keyEl.className = isItem ? 'index' : 'key';
+    keyEl.textContent = isItem ? String(key) : ('"' + key + '"');
+    keyEl.title = '点击复制' + (isItem ? '索引' : '键名');
+    keyEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyAndToast(isItem ? String(key) : key, '已复制' + (isItem ? '索引' : '键名'));
+    });
+    row.appendChild(keyEl);
+
+    const colon = document.createElement('span');
+    colon.className = 'colon';
+    colon.textContent = ':';
+    row.appendChild(colon);
+  }
+
+  if (isContainer) {
+    renderContainerRow(row, node, value, type, path, isEmpty);
+  } else {
+    renderLeaf(row, value, type, path);
+  }
+
+  if (!isLast) {
+    const comma = document.createElement('span');
+    comma.className = 'punct';
+    comma.textContent = ',';
+    row.appendChild(comma);
+  }
+
+  // 容器交互：点击行切换展开/折叠
+  if (isContainer && !isEmpty) {
+    row.classList.add('has-toggle');
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.copy-btn') || e.target.closest('.key') || e.target.closest('.index')) return;
+      node.classList.toggle('open');
+    });
+  }
+
+  return node;
+}
+
+function renderContainerRow(row, node, value, type, path, isEmpty) {
+  const openB = document.createElement('span');
+  openB.className = 'punct';
+  openB.textContent = type === 'array' ? '[' : '{';
+  row.appendChild(openB);
+
+  if (isEmpty) {
+    const closeB = document.createElement('span');
+    closeB.className = 'punct';
+    closeB.textContent = type === 'array' ? ']' : '}';
+    row.appendChild(closeB);
+    return;
+  }
+
+  // 折叠时显示的摘要 + 行内闭合括号（展开时由 CSS 隐藏）
+  const preview = document.createElement('span');
+  preview.className = 'preview';
+  preview.textContent = makePreview(value, type);
+  row.appendChild(preview);
+
+  const closeInline = document.createElement('span');
+  closeInline.className = 'punct close-inline';
+  closeInline.textContent = type === 'array' ? ']' : '}';
+  row.appendChild(closeInline);
+
+  const count = type === 'array' ? value.length : Object.keys(value).length;
+  const badge = document.createElement('span');
+  badge.className = 'badge';
+  badge.textContent = type === 'array' ? (count + ' 项') : (count + ' 键');
+  row.appendChild(badge);
+
+  row.appendChild(buildCopyBtn('路径', () => pathToStr(path)));
+  row.appendChild(buildCopyBtn(type === 'array' ? '数组' : '对象', () => JSON.stringify(value, null, 2)));
+
+  // 子节点容器 + 末尾闭合括号行
+  const children = document.createElement('div');
+  children.className = 'children';
+  const items = type === 'array'
+    ? value.map((v, i) => [i, v, true])
+    : Object.entries(value).map(([k, v], i, arr) => [k, v, i === arr.length - 1]);
+  items.forEach(([k, v, last]) => {
+    const childPath = path.concat(type === 'array' ? k : k);
+    children.appendChild(renderNode(v, k, childPath, type === 'array', last));
+  });
+
+  const closeRow = document.createElement('div');
+  closeRow.className = 'close-row';
+  const closeSym = document.createElement('span');
+  closeSym.className = 'punct';
+  closeSym.textContent = type === 'array' ? ']' : '}';
+  closeRow.appendChild(closeSym);
+  children.appendChild(closeRow);
+
+  node.appendChild(children);
+}
+
+function renderLeaf(row, value, type, path) {
+  const valEl = document.createElement('span');
+  valEl.className = 'val ' + type;
+  let display;
+  if (type === 'string') display = '"' + truncateStr(value, 200) + '"';
+  else if (type === 'null') display = 'null';
+  else display = String(value);
+  valEl.textContent = display;
+  if (type === 'string' && value.length > 200) {
+    valEl.title = '完整值长度 ' + value.length + ' 字符（点击复制完整内容）';
+  }
+  // 点击值复制原始值
+  valEl.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const raw = type === 'string' ? value : JSON.stringify(value);
+    copyAndToast(raw, '已复制：' + (type === 'string' ? '字符串值' : type));
+  });
+  row.appendChild(valEl);
+
+  row.appendChild(buildCopyBtn('值', () => type === 'string' ? value : JSON.stringify(value)));
+  row.appendChild(buildCopyBtn('路径', () => pathToStr(path)));
+}
+
+function makePreview(value, type) {
+  if (type === 'array') {
+    const parts = value.slice(0, 3).map(previewScalar);
+    const more = value.length > 3 ? ', …' : '';
+    return parts.join(', ') + more;
+  }
+  const entries = Object.entries(value).slice(0, 3)
+    .map(([k, v]) => '"' + k + '": ' + previewScalar(v));
+  const more = Object.keys(value).length > 3 ? ', …' : '';
+  return entries.join(', ') + more;
+}
+function previewScalar(v) {
+  const t = getType(v);
+  if (t === 'string') return '"' + truncateStr(v, 30) + '"';
+  if (t === 'null') return 'null';
+  if (t === 'array') return '[…]';
+  if (t === 'object') return '{…}';
+  return String(v);
+}
+
+/* ---------- 统计 ---------- */
+function countNodes(value, depth) {
+  state.nodeCount += 1;
+  if (depth > state.depth) state.depth = depth;
+  const t = getType(value);
+  if (t === 'array') value.forEach(v => countNodes(v, depth + 1));
+  else if (t === 'object') Object.values(value).forEach(v => countNodes(v, depth + 1));
+}
+
+/* ---------- 加载与渲染 ---------- */
+function loadJson(text, fileName) {
+  text = (text || '').trim();
+  if (!text) { showToast('内容为空', false); return false; }
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    showError(err, text);
+    return false;
+  }
+
+  state.data = data;
+  state.rawText = text;
+  state.fileName = fileName || '未命名';
+  state.nodeCount = 0;
+  state.depth = 0;
+  countNodes(data, 0);
+
+  renderTree();
+  applyLevel(2);            // 默认展开到第 2 层
+  updateStats(true);
+  $('#copyAllBtn').disabled = false;
+  $('#statBar').classList.remove('hidden');
+  return true;
+}
+
+function renderTree() {
+  const main = $('#main');
+  main.innerHTML = '';
+
+  const panel = document.createElement('div');
+  panel.className = 'tree-panel';
+
+  const head = document.createElement('div');
+  head.className = 'tree-head';
+  head.innerHTML =
+    '<span>📄</span>' +
+    '<span class="filename">' + escapeHtml(state.fileName) + '</span>' +
+    '<span>·</span>' +
+    '<span>根类型 ' + getTypeLabel(getType(state.data)) + '</span>' +
+    '<span>·</span>' +
+    '<span>最大深度 ' + state.depth + ' 层</span>' +
+    '<span>·</span>' +
+    '<span>' + state.nodeCount + ' 节点</span>';
+  panel.appendChild(head);
+
+  const body = document.createElement('div');
+  body.className = 'tree-body';
+  body.id = 'treeBody';
+  body.appendChild(renderNode(state.data, undefined, [], false, true));
+  panel.appendChild(body);
+
+  main.appendChild(panel);
+}
+
+function getTypeLabel(t) {
+  return { object: 'Object {}', array: 'Array []', string: 'string', number: 'number', boolean: 'boolean', null: 'null' }[t] || t;
+}
+function updateStats(ok) {
+  $('#statSize').textContent = formatSize(byteLength(state.rawText));
+  $('#statNodes').textContent = state.nodeCount + ' 节点';
+  const dot = $('#statBar .dot');
+  dot.classList.toggle('ok', !!ok);
+}
+
+/* ---------- 错误展示 ---------- */
+function showError(err, text) {
+  const msg = (err && err.message) ? err.message : String(err);
+  const pos = msg.match(/position\s+(\d+)/i);
+  let caretInfo = '';
+  if (pos) {
+    const p = parseInt(pos[1], 10);
+    const before = text.slice(0, p);
+    const line = before.split('\n').length;
+    const col = p - before.lastIndexOf('\n');
+    caretInfo = '\n位置：第 ' + line + ' 行，第 ' + col + ' 列（字符偏移 ' + p + '）';
+  }
+  $('#copyAllBtn').disabled = true;
+  $('#statBar').classList.add('hidden');
+  $('#main').innerHTML =
+    '<div class="error-box">' +
+      '<h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> JSON 解析失败</h3>' +
+      '<div class="msg">' + escapeHtml(msg + caretInfo) + '</div>' +
+      '<textarea spellcheck="false" id="errText"></textarea>' +
+      '<div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">' +
+        '<button class="btn primary" id="errRetryBtn">重新解析</button>' +
+        '<button class="btn" id="errEditBtn">在粘贴框中编辑</button>' +
+      '</div>' +
+    '</div>';
+  $('#errText').value = text;
+  $('#errRetryBtn').addEventListener('click', () => loadJson($('#errText').value, state.fileName || '编辑后的 JSON'));
+  $('#errEditBtn').addEventListener('click', () => openPasteModal($('#errText').value));
+  showToast('JSON 格式有误', false);
+}
+
+/* ---------- 展开折叠控制 ---------- */
+function applyLevel(level) {
+  const body = $('#treeBody');
+  if (!body) return;
+  const root = body.querySelector(':scope > .node');
+  if (!root) return;
+
+  if (level === 'all') {
+    body.querySelectorAll('.node').forEach(n => {
+      if (n.querySelector(':scope > .children')) n.classList.add('open');
+    });
+    setActiveLevel('all'); return;
+  }
+  if (level === 'none') {
+    // 折叠除根以外的所有节点
+    body.querySelectorAll('.node').forEach(n => n.classList.remove('open'));
+    root.classList.add('open');   // 根保持展开
+    setActiveLevel('none'); return;
+  }
+
+  // 数字层级：展开深度 <= level
+  function walk(node, depth) {
+    const hasChildren = !!node.querySelector(':scope > .children');
+    if (!hasChildren) return;
+    if (depth <= level) node.classList.add('open');
+    else node.classList.remove('open');
+    node.querySelectorAll(':scope > .children > .node').forEach(child => walk(child, depth + 1));
+  }
+  walk(root, 0);
+  setActiveLevel(String(level));
+}
+function setActiveLevel(level) {
+  document.querySelectorAll('#levelSeg button').forEach(b => {
+    b.classList.toggle('active', b.dataset.level === level);
+  });
+}
+
+/* ---------- 事件绑定 ---------- */
+$('#importBtn').addEventListener('click', () => $('#fileInput').click());
+$('#fileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) { readFile(file); }
+  e.target.value = '';
+});
+
+function readFile(file) {
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    if (loadJson(ev.target.result, file.name)) showToast('已导入：' + file.name);
+  };
+  reader.onerror = () => showToast('读取文件失败', false);
+  reader.readAsText(file, 'utf-8');
+}
+
+$('#pasteBtn').addEventListener('click', () => openPasteModal(''));
+function openPasteModal(text) {
+  $('#pasteArea').value = text || '';
+  $('#pasteModal').classList.add('show');
+  setTimeout(() => $('#pasteArea').focus(), 50);
+}
+function closePasteModal() { $('#pasteModal').classList.remove('show'); }
+$('#pasteCloseBtn').addEventListener('click', closePasteModal);
+$('#pasteCancelBtn').addEventListener('click', closePasteModal);
+$('#pasteLoadBtn').addEventListener('click', () => {
+  if (loadJson($('#pasteArea').value, '粘贴的 JSON')) closePasteModal();
+});
+
+$('#sampleBtn').addEventListener('click', () => {
+  const sample = {
+    "项目名称": "JSON 查看工具示例",
+    "版本": "1.0.0",
+    "启用": true,
+    "描述": "这是一个用于演示的 JSON 数据结构，包含常见的类型：字符串、数字、布尔值、null、对象和数组。",
+    "统计": { "用户数": 1024, "活跃率": 0.873, "峰值并发": null },
+    "维护者": [
+      { "姓名": "张三", "角色": "前端", "权限": ["读", "写"] },
+      { "姓名": "李四", "角色": "后端", "权限": ["读", "写", "部署"] }
+    ],
+    "配置": {
+      "超时毫秒": 30000,
+      "重试": { "次数": 3, "间隔毫秒": 500 },
+      "特性开关": { "暗色模式": true, "实验功能": false }
+    },
+    "标签": ["工具", "JSON", "前端", "实用"],
+    "空数组示例": [],
+    "空对象示例": {}
+  };
+  loadJson(JSON.stringify(sample, null, 2), 'sample.json');
+  showToast('已加载示例数据');
+});
+
+document.querySelectorAll('#levelSeg button').forEach(b => {
+  b.addEventListener('click', () => {
+    if (!state.data) { showToast('请先导入 JSON', false); return; }
+    const lvl = b.dataset.level;
+    if (lvl === 'all') applyLevel('all');
+    else if (lvl === 'none') applyLevel('none');
+    else applyLevel(parseInt(lvl, 10));
+  });
+});
+
+$('#copyAllBtn').addEventListener('click', async () => {
+  if (!state.data) return;
+  const text = JSON.stringify(state.data, null, 2);
+  await copyAndToast(text, '已复制全部 JSON（' + formatSize(byteLength(text)) + '）');
+});
+
+/* 拖拽上传 */
+const mainEl = $('#main');
+let dragCounter = 0;
+mainEl.addEventListener('dragenter', (e) => {
+  e.preventDefault(); dragCounter++;
+  const dz = $('#dropzone'); if (dz) dz.classList.add('dragover');
+});
+mainEl.addEventListener('dragover', (e) => e.preventDefault());
+mainEl.addEventListener('dragleave', (e) => {
+  e.preventDefault(); dragCounter--;
+  if (dragCounter <= 0) { dragCounter = 0; const dz = $('#dropzone'); if (dz) dz.classList.remove('dragover'); }
+});
+mainEl.addEventListener('drop', (e) => {
+  e.preventDefault(); dragCounter = 0;
+  const dz = $('#dropzone'); if (dz) dz.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) readFile(file);
+});
+
+/* 粘贴 modal 交互 */
+$('#pasteModal').addEventListener('click', (e) => {
+  if (e.target.id === 'pasteModal') closePasteModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closePasteModal();
+});
+
+/* 主题切换 */
+const themeBtn = $('#themeBtn');
+const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+function setTheme(dark) {
+  document.documentElement.classList.toggle('dark', dark);
+  themeBtn.innerHTML = dark ? SUN : MOON;
+  themeBtn.title = dark ? '切换到浅色' : '切换到深色';
+  try { localStorage.setItem('json-theme', dark ? 'dark' : 'light'); } catch {}
+}
+themeBtn.addEventListener('click', () => setTheme(!document.documentElement.classList.contains('dark')));
+try {
+  const saved = localStorage.getItem('json-theme');
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  setTheme(saved ? saved === 'dark' : prefersDark);
+} catch { setTheme(false); }
+</script>
+</body>
+</html>
