@@ -269,6 +269,14 @@
   }
   .modal-body textarea:focus { outline: none; border-color: var(--accent); }
   .modal-foot { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+  .url-input {
+    width: 100%; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg); color: var(--text);
+    padding: 11px 12px; font-family: monospace; font-size: 13px;
+  }
+  .url-input:focus { outline: none; border-color: var(--accent); }
+  .url-input:disabled { opacity: .6; }
+  .url-hint { margin-top: 12px; font-size: 12px; color: var(--text-muted); line-height: 1.7; }
 
   /* ---------- Toast ---------- */
   #toast {
@@ -305,40 +313,52 @@
     <div class="mark">{ }</div>
     <div>
       JSON 格式化与查看工具
-      <div class="sub">导入 · 结构化 · 折叠展开 · 一键复制</div>
+      <div class="sub">导入 · 结构化 · 折叠展开 · 复制下载</div>
     </div>
   </div>
   <div class="spacer"></div>
+  <a class="icon-btn" href="https://github.com/wangruofeng/json-viewer" target="_blank" rel="noopener noreferrer" title="查看 GitHub 源码" aria-label="GitHub 源码仓库">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.37.5 0 5.78 0 12.292c0 5.211 3.438 9.63 8.205 11.188.6.111.82-.254.82-.567 0-.28-.01-1.022-.015-2.005-3.338.711-4.042-1.582-4.042-1.582-.546-1.361-1.335-1.725-1.335-1.725-1.087-.731.084-.716.084-.716 1.205.082 1.838 1.215 1.838 1.215 1.07 1.803 2.809 1.282 3.495.981.108-.763.417-1.282.76-1.577-2.665-.295-5.466-1.309-5.466-5.827 0-1.287.465-2.339 1.235-3.164-.135-.297-.54-1.498.105-3.121 0 0 1.005-.316 3.3 1.209.96-.262 1.98-.392 3-.397 1.02.005 2.04.135 3 .397 2.28-1.525 3.285-1.209 3.285-1.209.645 1.623.24 2.824.12 3.121.765.825 1.23 1.877 1.23 3.164 0 4.53-2.805 5.527-5.475 5.817.42.354.81 1.077.81 2.182 0 1.578-.015 2.846-.015 3.229 0 .309.21.678.825.562C20.565 21.917 24 17.495 24 12.292 24 5.78 18.627.5 12 .5z"/></svg>
+  </a>
   <button class="icon-btn" id="themeBtn" title="切换深浅色"></button>
 </header>
 
 <div class="toolbar">
   <button class="btn primary" id="importBtn">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-    导入文件
+    导入
   </button>
   <button class="btn" id="pasteBtn">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
-    粘贴文本
+    粘贴
   </button>
-  <button class="btn ghost" id="sampleBtn">加载示例</button>
+  <button class="btn" id="urlBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    URL 导入
+  </button>
+  <button class="btn ghost" id="sampleBtn">示例</button>
 
   <div class="divider"></div>
 
   <div class="seg" id="levelSeg">
-    <button data-level="all">全部展开</button>
+    <button data-level="all">展开</button>
     <button data-level="0">仅根</button>
     <button data-level="1">1 层</button>
     <button data-level="2">2 层</button>
     <button data-level="3">3 层</button>
-    <button data-level="none">全部折叠</button>
+    <button data-level="none">折叠</button>
   </div>
 
   <div class="divider"></div>
 
   <button class="btn" id="copyAllBtn" disabled>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-    复制全部 JSON
+    复制全部
+  </button>
+
+  <button class="btn" id="downloadBtn" disabled>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    下载
   </button>
 
   <div class="spacer"></div>
@@ -363,8 +383,9 @@
     <p>支持 <code>.json</code> 文件导入，或直接粘贴 JSON 文本。<br>结构化后将显示为可按层级展开/折叠的树形视图，每个字段均可一键复制。</p>
     <div class="actions">
       <button class="btn primary" onclick="document.getElementById('importBtn').click()">选择文件</button>
-      <button class="btn" onclick="document.getElementById('pasteBtn').click()">粘贴 JSON</button>
-      <button class="btn ghost" onclick="document.getElementById('sampleBtn').click()">加载示例</button>
+      <button class="btn" onclick="document.getElementById('pasteBtn').click()">粘贴</button>
+      <button class="btn" onclick="document.getElementById('urlBtn').click()">URL 导入</button>
+      <button class="btn ghost" onclick="document.getElementById('sampleBtn').click()">示例</button>
     </div>
     <div class="hint">提示：所有键、值、以及字段访问路径都支持复制；长文本会自动截断预览。</div>
   </div>
@@ -384,7 +405,27 @@
     </div>
     <div class="modal-foot">
       <button class="btn" id="pasteCancelBtn">取消</button>
-      <button class="btn primary" id="pasteLoadBtn">解析并结构化</button>
+      <button class="btn primary" id="pasteLoadBtn">解析</button>
+    </div>
+  </div>
+</div>
+
+<!-- URL modal -->
+<div class="modal-backdrop" id="urlModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>URL 导入 JSON</h3>
+      <button class="icon-btn" id="urlCloseBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input id="urlInput" class="url-input" type="url" placeholder="https://example.com/api/data.json" spellcheck="false" autocomplete="off">
+      <div class="url-hint">输入返回 JSON 的接口地址，按回车或点击下方按钮获取。<br>注意：目标服务器需允许跨域访问（CORS），否则浏览器会阻止读取响应。</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="urlCancelBtn">取消</button>
+      <button class="btn primary" id="urlLoadBtn">获取</button>
     </div>
   </div>
 </div>
@@ -678,6 +719,7 @@ function loadJson(text, fileName) {
   applyLevel(2);            // 默认展开到第 2 层
   updateStats(true);
   $('#copyAllBtn').disabled = false;
+  $('#downloadBtn').disabled = false;
   $('#statBar').classList.remove('hidden');
   return true;
 }
@@ -734,6 +776,7 @@ function showError(err, text) {
     caretInfo = '\n位置：第 ' + line + ' 行，第 ' + col + ' 列（字符偏移 ' + p + '）';
   }
   $('#copyAllBtn').disabled = true;
+  $('#downloadBtn').disabled = true;
   $('#statBar').classList.add('hidden');
   $('#main').innerHTML =
     '<div class="error-box">' +
@@ -741,8 +784,8 @@ function showError(err, text) {
       '<div class="msg">' + escapeHtml(msg + caretInfo) + '</div>' +
       '<textarea spellcheck="false" id="errText"></textarea>' +
       '<div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">' +
-        '<button class="btn primary" id="errRetryBtn">重新解析</button>' +
-        '<button class="btn" id="errEditBtn">在粘贴框中编辑</button>' +
+        '<button class="btn primary" id="errRetryBtn">重试</button>' +
+        '<button class="btn" id="errEditBtn">编辑</button>' +
       '</div>' +
     '</div>';
   $('#errText').value = text;
@@ -818,6 +861,56 @@ $('#pasteLoadBtn').addEventListener('click', () => {
   if (loadJson($('#pasteArea').value, '粘贴的 JSON')) closePasteModal();
 });
 
+/* ---------- URL 导入 ---------- */
+$('#urlBtn').addEventListener('click', () => openUrlModal());
+function openUrlModal() {
+  $('#urlInput').value = '';
+  setUrlLoading(false);
+  $('#urlModal').classList.add('show');
+  setTimeout(() => $('#urlInput').focus(), 50);
+}
+function closeUrlModal() { $('#urlModal').classList.remove('show'); }
+function setUrlLoading(loading) {
+  const btn = $('#urlLoadBtn');
+  btn.disabled = loading;
+  btn.textContent = loading ? '加载中…' : '获取';
+  $('#urlInput').disabled = loading;
+}
+/* 从 URL 推导文件名：取路径末段，缺扩展名时补 .json */
+function urlToFileName(u) {
+  const last = (() => { try { return decodeURIComponent(u.pathname.split('/').filter(Boolean).pop() || ''); } catch { return ''; } })();
+  if (last) return /\.[a-z0-9]+$/i.test(last) ? last.replace(/\.(json|jsonc|txt)$/i, '.json') : last + '.json';
+  return (u.hostname || 'url') + '.json';
+}
+async function loadFromUrl(rawUrl) {
+  const input = (rawUrl || '').trim();
+  if (!input) { showToast('请输入 URL', false); return; }
+  let parsed;
+  try { parsed = new URL(input); }
+  catch { showToast('URL 格式无效', false); return; }
+  if (!/^https?:$/.test(parsed.protocol)) { showToast('仅支持 http / https 地址', false); return; }
+
+  setUrlLoading(true);
+  try {
+    const res = await fetch(input, { redirect: 'follow', headers: { 'Accept': 'application/json, text/plain, */*' } });
+    if (!res.ok) { showToast('请求失败：HTTP ' + res.status, false); return; }
+    const text = await res.text();
+    const name = urlToFileName(parsed);
+    if (loadJson(text, name)) { closeUrlModal(); showToast('已URL 导入：' + name); }
+  } catch (err) {
+    // fetch 抛错几乎都是网络故障或 CORS 拦截，浏览器出于安全不会给出更细的原因
+    showToast('无法获取：网络错误或目标未允许跨域访问（CORS）', false);
+  } finally {
+    setUrlLoading(false);
+  }
+}
+$('#urlCloseBtn').addEventListener('click', closeUrlModal);
+$('#urlCancelBtn').addEventListener('click', closeUrlModal);
+$('#urlLoadBtn').addEventListener('click', () => loadFromUrl($('#urlInput').value));
+$('#urlInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); loadFromUrl($('#urlInput').value); }
+});
+
 $('#sampleBtn').addEventListener('click', () => {
   const sample = {
     "项目名称": "JSON 查看工具示例",
@@ -839,7 +932,7 @@ $('#sampleBtn').addEventListener('click', () => {
     "空对象示例": {}
   };
   loadJson(JSON.stringify(sample, null, 2), 'sample.json');
-  showToast('已加载示例数据');
+  showToast('已示例数据');
 });
 
 document.querySelectorAll('#levelSeg button').forEach(b => {
@@ -857,6 +950,30 @@ $('#copyAllBtn').addEventListener('click', async () => {
   const text = JSON.stringify(state.data, null, 2);
   await copyAndToast(text, '已复制全部 JSON（' + formatSize(byteLength(text)) + '）');
 });
+
+/* 一键下载 JSON：基于当前数据生成格式化后的 .json 文件 */
+$('#downloadBtn').addEventListener('click', () => downloadJson());
+
+function downloadFileName() {
+  // 去掉已知扩展名，清理非法文件名字符，统一加上 .json
+  let name = (state.fileName || 'json').replace(/\.(json|jsonc|txt)$/i, '').trim();
+  name = name.replace(/[\\/:*?"<>|]/g, '_') || 'json';
+  return name + '.json';
+}
+function downloadJson() {
+  if (!state.data) return;
+  const text = JSON.stringify(state.data, null, 2);
+  const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = downloadFileName();
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('已下载：' + a.download + '（' + formatSize(byteLength(text)) + '）');
+}
 
 /* 拖拽上传 */
 const mainEl = $('#main');
@@ -881,8 +998,11 @@ mainEl.addEventListener('drop', (e) => {
 $('#pasteModal').addEventListener('click', (e) => {
   if (e.target.id === 'pasteModal') closePasteModal();
 });
+$('#urlModal').addEventListener('click', (e) => {
+  if (e.target.id === 'urlModal') closeUrlModal();
+});
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closePasteModal();
+  if (e.key === 'Escape') { closePasteModal(); closeUrlModal(); }
 });
 
 /* 主题切换 */
