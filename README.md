@@ -39,5 +39,3 @@ open index.html        # macOS
 已通过 GitHub Pages 部署，可直接访问：
 
 🔗 **https://blog.wangruofeng007.com/json-viewer/**
-
-源码仓库：https://github.com/wangruofeng/json-viewer
